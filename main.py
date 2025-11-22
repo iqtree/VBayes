@@ -44,8 +44,8 @@ if __name__ == '__main__':
     init_clock_rate = 1.0
     clock_type = 'strict'
     feature_dim = 2
-    max_iter = 10_000
-    warm_up_steps = 5_000
+    max_iter = 20_000
+    warm_up_steps = 10_000
     anneal_rate = 0.75
     anneal_freq = 1000
     init_inverse_temp = 0.00001
