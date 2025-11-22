@@ -36,10 +36,9 @@ if __name__ == '__main__':
 
     namenum(tree, taxa)
 
-    mu_lambda = 1.0
-    sigma_lambda = 1.0
-    mu_mu = 1.0
-    sigma_mu = 1.0
+    lambda_bd = 1.0
+    mu_bd = 1.0
+    rho_bd = 0.5
     mu_clock = 0.5
     sigma_clock = 1.0
     init_clock_rate = 1.0
@@ -50,13 +49,12 @@ if __name__ == '__main__':
     anneal_rate = 0.75
     anneal_freq = 1000
     init_inverse_temp = 0.00001
-    n_particles = 4
-    branch_model = "gnn"
+    n_particles = 1
+    branch_model = ""
 
-    logger.info(f"\nmu_lambda = {mu_lambda}\n"
-                f"sigma_lambda = {sigma_lambda}\n"
-                f"mu_mu = {mu_mu}\n"
-                f"sigma_mu = {sigma_mu}\n"
+    logger.info(f"\nlambda_bd = {lambda_bd}\n"
+                f"mu_bd = {mu_bd}\n"
+                f"rho_bd = {rho_bd}\n"
                 f"mu_clock = {mu_clock}\n"
                 f"sigma_clock = {sigma_clock}\n"
                 f"clock_rate = {init_clock_rate}\n"
@@ -71,7 +69,7 @@ if __name__ == '__main__':
                 f"aln_path = {aln_path}\n")
 
     model = Vbayes(taxa, data, pden=np.ones(4) / 4., subModel=('JC', 1.0),
-                    mu_lambda=mu_lambda, sigma_lambda=sigma_lambda, mu_mu=mu_mu, sigma_mu=sigma_mu,
+                    lambda_bd=lambda_bd, mu_bd=mu_bd, rho_bd=rho_bd,
                     mu_clock=mu_clock, sigma_clock=sigma_clock, clock_rate=init_clock_rate, clock_type=clock_type,
                     feature_dim=feature_dim, use_ambiguity=False,
                     tree=tree, max_iter=max_iter, n_particles=n_particles, branch_model=branch_model, logger=logger)
