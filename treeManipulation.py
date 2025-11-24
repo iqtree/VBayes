@@ -1,8 +1,9 @@
-import numpy as np
 import re
+import warnings
+
+import numpy as np
 from ete3 import Tree
 
-import warnings
 warnings.simplefilter('always', UserWarning)
 
 
@@ -130,6 +131,7 @@ def copy(tree, branch=None):
 
     return copy_tree
 
+
 def read_rooted_fossil_tree(fossil_tree_path):
     pattern = re.compile(r"""
         B          # Literal 'B'
@@ -138,7 +140,6 @@ def read_rooted_fossil_tree(fossil_tree_path):
         ,([^)]+)   # Capture group 2: second float or value (until closing parenthesis)
         \)         # Closing parenthesis
     """, re.VERBOSE)
-
 
     with open(fossil_tree_path, 'r') as f:
         fossil_tree = f.read()
@@ -166,20 +167,17 @@ def read_rooted_fossil_tree(fossil_tree_path):
     return tree
 
 
-
-
 def fossil_bounds_to_branch_lengths(tree, root_age=None, midpoint=True, eps=1e-9):
-
     for node in tree.traverse("postorder"):
-        if hasattr(node, "lb") and node.lb is not None:        # fossil-calibrated node
+        if hasattr(node, "lb") and node.lb is not None:  # fossil-calibrated node
             if midpoint:
                 node.height = 0.5 * (node.lb + node.ub)
             else:
                 node.height = node.lb
-        elif node.is_leaf():                                   # extant tip
+        elif node.is_leaf():  # extant tip
             node.height = 0.0
         else:
-            node.height = None                                 # will be filled in pass 2
+            node.height = None  # will be filled in pass 2
     changed = True
     while changed:
         changed = False
@@ -201,14 +199,13 @@ def fossil_bounds_to_branch_lengths(tree, root_age=None, midpoint=True, eps=1e-9
 
     for node in tree.traverse("postorder"):
         if node.is_root():
-            node.dist = 0.0                       # root branch length is undefined; keep 0
+            node.dist = 0.0  # root branch length is undefined; keep 0
         else:
             node.dist = node.up.height - node.height
             if node.dist < 0:
                 raise ValueError(f"Negative branch length at {node.name} ({node.dist})")
 
     return tree
-
 
 
 if __name__ == '__main__':
@@ -224,8 +221,8 @@ if __name__ == '__main__':
         if node.is_root():
             node.dist = 3.0
         if node.is_leaf():
-            node.dist = 3 - 0.2*N_internal_node
+            node.dist = 3 - 0.2 * N_internal_node
     namenum(tree, taxa)
     print(tree)
     for node in tree.traverse("postorder"):
-        print(node.name,node.dist)
+        print(node.name, node.dist)

@@ -31,7 +31,7 @@ class GCNConv(nn.Module):
         node_degree = torch.sum(edge_index >= 0, dim=-1, keepdim=True, dtype=torch.float) + 1.0
         x = self.transform(x) / node_degree ** 0.5
 
-        node_features = torch.concat((x, torch.zeros(1, self.out_channels)), dim=0) # transform from in_channels to out_channels and add one more tensor for -1 case
+        node_features = torch.concat((x, torch.zeros(1, self.out_channels)), dim=0)  # transform from in_channels to out_channels and add one more tensor for -1 case
         neigh_features = node_features[edge_index]
         node_and_neigh_features = torch.concat((neigh_features, x.view(-1, 1, self.out_channels)), dim=1)
 
@@ -90,7 +90,7 @@ class GINConv(nn.Module):
         node_features_padded = torch.concat((x, torch.zeros(1, self.out_channels)), dim=0)
         neigh_feature = node_features_padded[edge_index]
 
-        return self.mlp((1+self.eps)*x + neigh_feature.sum(1))
+        return self.mlp((1 + self.eps) * x + neigh_feature.sum(1))
 
 
 class EdgeConv(nn.Module):
@@ -111,6 +111,7 @@ class EdgeConv(nn.Module):
         output = torch.where(edge_index.flatten().view(-1, 1) != -1, output, torch.tensor(-math.inf))
 
         return torch.max(output.view(-1, edge_index.shape[-1], self.out_channels), dim=1)[0]
+
 
 class GatedGraphConv(nn.Module):
     def __init__(self, out_channels, num_layers=1, bias=True, **kwargs):
@@ -134,7 +135,6 @@ class GatedGraphConv(nn.Module):
             x = torch.concat((x, x.new_zeros(x.size(0), self.out_channels - x.size(-1))), dim=1)
 
         for i in range(self.num_layers):
-
             m = torch.matmul(x, self.weight[i])
 
             node_features_padded = torch.concat((m, torch.zeros(1, self.out_channels)))
@@ -145,8 +145,8 @@ class GatedGraphConv(nn.Module):
 
         return x
 
-class GNNStack(nn.Module):
 
+class GNNStack(nn.Module):
     gnn_models = {
         "gcn": GCNConv,
         "sage": SAGEConv,
@@ -154,16 +154,19 @@ class GNNStack(nn.Module):
         "edge": EdgeConv,
     }
 
-    def __init__(self, in_channels, out_channels, num_layers=1, bias=True, aggr='sum', gnn_type='gcn', project=False, **kwargs):
+    def __init__(self, in_channels, out_channels, num_layers=1, bias=True, aggr='sum', gnn_type='gcn', project=False,
+                 **kwargs):
         super().__init__()
         self.in_channels, self.out_channels = in_channels, out_channels
         self.num_layers = num_layers
         self.gconvs = nn.ModuleList()
 
-        self.gconvs.append(self.gnn_models[gnn_type](self.in_channels, self.out_channels, bias=bias, aggr=aggr, project=project))
+        self.gconvs.append(
+            self.gnn_models[gnn_type](self.in_channels, self.out_channels, bias=bias, aggr=aggr, project=project))
 
         for i in range(self.num_layers - 1):
-            self.gconvs.append(self.gnn_models[gnn_type](self.out_channels, self.out_channels, bias=bias, aggr=aggr, project=project))
+            self.gconvs.append(
+                self.gnn_models[gnn_type](self.out_channels, self.out_channels, bias=bias, aggr=aggr, project=project))
 
     def forward(self, x, edge_index, *args):
         for i in range(self.num_layers):
@@ -171,13 +174,14 @@ class GNNStack(nn.Module):
             x = F.elu(x)
         return x
 
+
 class MeanStdPooling(nn.Module):
     def __init__(self, in_channels, out_channels, bias=True, **kwargs):
         super().__init__()
         self.in_channels, self.out_channels = in_channels, out_channels
 
         self.net = nn.Sequential(nn.Linear(self.in_channels, self.out_channels, bias=bias), nn.ELU(),
-                                 nn.Linear(self.out_channels, self.out_channels, bias=bias), nn.ELU(),)
+                                 nn.Linear(self.out_channels, self.out_channels, bias=bias), nn.ELU(), )
 
         self.readout = nn.Sequential(nn.Linear(self.out_channels, self.out_channels, bias=bias), nn.ELU(),
                                      nn.Linear(self.out_channels, 2, bias=bias))
@@ -198,10 +202,12 @@ class MeanStdPooling(nn.Module):
 
     def forward(self, x, parent_index, *args):
         mean_std = self.net(x)
-        mean_std = torch.concat((torch.max(mean_std[:-1], mean_std[parent_index]), torch.unsqueeze( mean_std[-1],dim=0)), dim=0)
+        mean_std = torch.concat(
+            (torch.max(mean_std[:-1], mean_std[parent_index]), torch.unsqueeze(mean_std[-1], dim=0)), dim=0)
         mean_std = self.readout(mean_std)
 
-        return mean_std[:,0], mean_std[:,1]
+        return mean_std[:, 0], mean_std[:, 1]
+
 
 class GraphPooling(nn.Module):
     def __init__(self, in_channels, out_channels, bias=True, aggr="mean", **kwargs):
@@ -209,7 +215,7 @@ class GraphPooling(nn.Module):
         self.in_channels, self.out_channels = in_channels, out_channels
         self.aggr = aggr
         self.net = nn.Sequential(nn.Linear(self.in_channels, self.out_channels, bias=bias), nn.ELU(),
-                                 nn.Linear(self.out_channels, self.out_channels, bias=bias), nn.ELU(),)
+                                 nn.Linear(self.out_channels, self.out_channels, bias=bias), nn.ELU(), )
 
         self.readout = nn.Sequential(nn.Linear(self.out_channels, self.out_channels, bias=bias), nn.ELU(),
                                      nn.Linear(self.out_channels, 1, bias=bias))
@@ -226,9 +232,3 @@ class GraphPooling(nn.Module):
             raise NotImplementedError
 
         return self.readout(output)
-
-
-
-
-
-

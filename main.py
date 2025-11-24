@@ -1,5 +1,5 @@
-import logging
 import argparse
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -13,7 +13,6 @@ from vbayes import Vbayes
 
 
 def build_parser():
-
     parser = argparse.ArgumentParser(
         prog="VBayes",
         description="VBayes for time-tree variational inference",
@@ -52,7 +51,7 @@ def build_parser():
     io.add_argument(
         "--save-path",
         type=str,
-        default=None,   # we'll fill this after parsing if None
+        default=None,  # we'll fill this after parsing if None
         help="Where to save the final model. If not set, uses ./models/{aln_name}_{now}.model"
     )
 
@@ -62,8 +61,8 @@ def build_parser():
     bd = parser.add_argument_group("parameters for birth–Death prior with species sampling")
 
     bd.add_argument("--lambda-bd", type=float, default=1.0, help="Birth rate λ.")
-    bd.add_argument("--mu-bd",     type=float, default=1.0, help="Death rate μ.")
-    bd.add_argument("--rho-bd",    type=float, default=0.5, help="Sampling fraction ρ.")
+    bd.add_argument("--mu-bd", type=float, default=1.0, help="Death rate μ.")
+    bd.add_argument("--rho-bd", type=float, default=0.5, help="Sampling fraction ρ.")
 
     # -----------------------
     # Clock / rate model
@@ -86,7 +85,8 @@ def build_parser():
     # -----------------------
     model = parser.add_argument_group("Model / features")
 
-    model.add_argument("--feature-dim", type=int, default=2, help="number of parameters to optimize for vanilla VI models. Typically mean and variance only.")
+    model.add_argument("--feature-dim", type=int, default=2,
+                       help="number of parameters to optimize for vanilla VI models. Typically mean and variance only.")
     model.add_argument(
         "--branch-model",
         type=str,
@@ -131,8 +131,8 @@ def parse_args(argv=None):
 
     return args
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
 
     now = datetime.now()
     args = parse_args()
@@ -197,10 +197,10 @@ if __name__ == '__main__':
                 f"aln_path = {aln_path}\n")
 
     model = Vbayes(taxa, data, pden=np.ones(4) / 4., subModel=('JC', 1.0),
-                    lambda_bd=lambda_bd, mu_bd=mu_bd, rho_bd=rho_bd,
-                    mu_clock=mu_clock, sigma_clock=sigma_clock, clock_rate=init_clock_rate, clock_type=clock_type,
-                    feature_dim=feature_dim, use_ambiguity=False,
-                    tree=tree, max_iter=max_iter, n_particles=n_particles, branch_model=branch_model, logger=logger)
+                   lambda_bd=lambda_bd, mu_bd=mu_bd, rho_bd=rho_bd,
+                   mu_clock=mu_clock, sigma_clock=sigma_clock, clock_rate=init_clock_rate, clock_type=clock_type,
+                   feature_dim=feature_dim, use_ambiguity=False,
+                   tree=tree, max_iter=max_iter, n_particles=n_particles, branch_model=branch_model, logger=logger)
 
     print("\n VBayes running...")
 
@@ -212,7 +212,6 @@ if __name__ == '__main__':
 
     print("Parameter info:")
     logger.info("Parameter info:")
-
 
     for name, param in model.named_parameters():
         print(f"Name: {name}, Value: {param}")
@@ -232,7 +231,6 @@ if __name__ == '__main__':
     mean_times = torch.mean(sample_heights_tensor, dim=0)
     std_times = torch.std(sample_heights_tensor, dim=0)
 
-
     mean_rates = torch.mean(sample_rates_tensor, dim=0)
     std_rates = torch.std(sample_rates_tensor, dim=0)
 
@@ -242,7 +240,6 @@ if __name__ == '__main__':
     CI_times_lower, CI_times_upper = CI_times.unbind(dim=0)
     CI_rates = torch.quantile(sample_rates_tensor, q=quantile_pos, dim=0)
     CI_rates_lower, CI_rates_upper = CI_rates.unbind(dim=0)
-
 
     internal_ids, id_pos = model.branch_model.get_preorder_internal_ids()
     vai_stat = "Parameter,Posterior_mean,Std,CI_lower,CI_upper,CI_width\n"

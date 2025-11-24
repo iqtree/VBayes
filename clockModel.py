@@ -1,4 +1,5 @@
 import math
+
 import torch
 import torch.nn as nn
 
@@ -68,13 +69,6 @@ class StrictModel(nn.Module):
 #             dim=-1)
 
 class RelaxedModel(nn.Module):
-    def __init__(self, init_clock_rate=1, mu=0.8, sigma=2.0,**kwargs):
-        super().__init__()
-        self.mu, self.sigma = math.log(mu), sigma
-
-    def forward(self, log_clock_rate):
-        ...
-class AutocorrelatedModel(nn.Module):
     def __init__(self, init_clock_rate=1, mu=0.8, sigma=2.0, **kwargs):
         super().__init__()
         self.mu, self.sigma = math.log(mu), sigma
@@ -82,3 +76,11 @@ class AutocorrelatedModel(nn.Module):
     def forward(self, log_clock_rate):
         ...
 
+
+class AutocorrelatedModel(nn.Module):
+    def __init__(self, init_clock_rate=1, mu=0.8, sigma=2.0, **kwargs):
+        super().__init__()
+        self.mu, self.sigma = math.log(mu), sigma
+
+    def forward(self, log_clock_rate):
+        ...

@@ -19,7 +19,7 @@ class Vbayes(nn.Module):
 
     def __init__(self, taxa, data, pden, subModel, lambda_bd=0.0, mu_bd=1.0, rho_bd=0,
                  mu_clock=0.8, sigma_clock=2.0, clock_rate=1, clock_type='strict', feature_dim=2,
-                 use_ambiguity=False, tree=Tree(), max_iter=500000, n_particles=10, branch_model = None, logger=None):
+                 use_ambiguity=False, tree=Tree(), max_iter=500000, n_particles=10, branch_model=None, logger=None):
         super().__init__()
         self.taxa = taxa
         self.n_tips = len(data)
@@ -85,7 +85,8 @@ class Vbayes(nn.Module):
         if not print_iter:
             print("samp_branch", samp_branch)
 
-        log_ll = torch.stack([self.phylo_model.loglikelihood(samp_branch[i], self.tree) for i in range(self.n_particles)])
+        log_ll = torch.stack(
+            [self.phylo_model.loglikelihood(samp_branch[i], self.tree) for i in range(self.n_particles)])
         # logp_t_prior = self.tree_prior_model.log_prior()
         logp_clock_prior = self.clock_model(log_clock_rate)
 
@@ -166,7 +167,7 @@ class Vbayes(nn.Module):
         prior_vai_dist_mean = torch.stack(prior_vai_dist).mean()
 
         if not print_iter:
-            samp_branches = torch.stack(samp_branches).mean(dim=(0,1))
+            samp_branches = torch.stack(samp_branches).mean(dim=(0, 1))
             print("Log-Likelihood: ", log_ll_mean)
             self.logger.info(f"Log-Likelihood: {log_ll_mean}", )
             self.logger.info(f"samples branches: {samp_branches}", )
@@ -174,7 +175,7 @@ class Vbayes(nn.Module):
         return lower_bound, lower_bound_scaled, log_ll_mean, t_prior_mean, clock_prior_mean, q_height_mean, q_clock_mean, prior_vai_dist_mean
 
     def learn_with_annealing(self, step_sz=0.01, test_freq=1000, test_save_feq=50, anneal_freq=40000, anneal_rate=0.75,
-                              init_inverse_temp=0.0001, warm_start_interval=50000, save_to_path=None):
+                             init_inverse_temp=0.0001, warm_start_interval=50000, save_to_path=None):
 
         lbs, lbss, lls, ltp, lcp, lq_height, lq_clock, l_prior_vai_dist = [], [], [], [], [], [], [], []
 
@@ -183,8 +184,6 @@ class Vbayes(nn.Module):
                 step_sz = {'branch': step_sz * 0.1, 'clock': step_sz}
             else:
                 step_sz = {'branch': step_sz, 'clock': step_sz}
-
-
 
         optimizer = torch.optim.Adam([
             {'params': self.branch_model.parameters(), 'lr': step_sz['branch']},
@@ -213,7 +212,8 @@ class Vbayes(nn.Module):
                 l_prior_vai_dist.append(prior_vai_dist.item())
 
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(list(self.branch_model.parameters())+list(self.clock_model.parameters()), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(list(self.branch_model.parameters()) + list(self.clock_model.parameters()),
+                                           max_norm=1.0)
             optimizer.step()
 
             if it % anneal_freq == 0:
@@ -223,7 +223,8 @@ class Vbayes(nn.Module):
             if it % test_freq == 0:
                 print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
                 self.logger.info(f"inverse_temp: {inverse_temp} lower_bound: {lbss[-1]}")
-                print(f"iteration: {it}, inverse_temp: {inverse_temp} lower_bound: {lbs[-1]} lower_bound_scaled: {lbss[-1]}")
+                print(
+                    f"iteration: {it}, inverse_temp: {inverse_temp} lower_bound: {lbs[-1]} lower_bound_scaled: {lbss[-1]}")
                 sample_heights = []
                 sample_rates = []
                 for i in range(1000):
@@ -235,8 +236,8 @@ class Vbayes(nn.Module):
                 sample_heights_tensor = torch.stack(sample_heights)
                 sample_rates_tensor = torch.stack(sample_rates)
 
-                mean_times = torch.mean(sample_heights_tensor, dim=(0,1))
-                mean_rates = torch.mean(sample_rates_tensor, dim=(0,1))
+                mean_times = torch.mean(sample_heights_tensor, dim=(0, 1))
+                mean_rates = torch.mean(sample_rates_tensor, dim=(0, 1))
                 self.logger.info(f"Mean times: {mean_times}")
                 self.logger.info(f"Mean rates: {mean_rates}")
                 self.logger.info(f">>>>>>>>>>>>>>>>>>>>>>>")
@@ -246,19 +247,19 @@ class Vbayes(nn.Module):
 
         return lbs, lbss, lls, ltp, lcp, lq_height, lq_clock, l_prior_vai_dist
 
-    def learn_with_annealing_recomb(self, step_sz=0.01, test_freq=200, test_save_feq=50, anneal_freq=40000, anneal_rate=0.75,
-                              init_inverse_temp=0.0001, warm_start_interval=50000, save_to_path=None, sample_file=None):
+    def learn_with_annealing_recomb(self, step_sz=0.01, test_freq=200, test_save_feq=50, anneal_freq=40000,
+                                    anneal_rate=0.75,
+                                    init_inverse_temp=0.0001, warm_start_interval=50000, save_to_path=None,
+                                    sample_file=None):
 
         lbs, lbss, lls, ltp, lcp, lq_height, lq_clock, l_prior_vai_dist = [], [], [], [], [], [], [], []
 
         if not isinstance(step_sz, dict):
             if self.branch_model_type == "gnn":
-                step_sz = {'branch': step_sz*0.1, 'clock': step_sz}
+                step_sz = {'branch': step_sz * 0.1, 'clock': step_sz}
                 # step_sz = {'branch': step_sz * 0.1, 'clock': step_sz}
             else:
                 step_sz = {'branch': step_sz, 'clock': step_sz}
-
-
 
         optimizer = torch.optim.Adam([
             {'params': self.branch_model.parameters(), 'lr': step_sz['branch']},
@@ -292,18 +293,19 @@ class Vbayes(nn.Module):
                 l_prior_vai_dist.append(prior_vai_dist.item())
 
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(list(self.branch_model.parameters())+list(self.clock_model.parameters()), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(list(self.branch_model.parameters()) + list(self.clock_model.parameters()),
+                                           max_norm=1.0)
             optimizer.step()
 
             if it % anneal_freq == 0:
                 for g in optimizer.param_groups:
                     g['lr'] *= anneal_rate
 
-
             if it % test_freq == 0:
                 print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
                 self.logger.info(f"inverse_temp: {inverse_temp} lower_bound: {lbss[-1]}")
-                print(f"iteration: {it}, inverse_temp: {inverse_temp} lower_bound: {lbs[-1]} lower_bound_scaled: {lbss[-1]}")
+                print(
+                    f"iteration: {it}, inverse_temp: {inverse_temp} lower_bound: {lbs[-1]} lower_bound_scaled: {lbss[-1]}")
                 sample_heights = []
                 sample_rates = []
                 sample_log_lls = []
@@ -314,15 +316,16 @@ class Vbayes(nn.Module):
                     samp_branch = raw_branch * log_rate.exp()
                     sample_heights.append(heights)
                     sample_rates.append(log_rate.exp())
-                    sample_log_lls.append(torch.stack([self.phylo_model.loglikelihood(samp_branch[i], self.tree) for i in range(self.n_particles)]))
+                    sample_log_lls.append(torch.stack(
+                        [self.phylo_model.loglikelihood(samp_branch[i], self.tree) for i in range(self.n_particles)]))
 
                 sample_heights_tensor = torch.stack(sample_heights)
                 sample_rates_tensor = torch.stack(sample_rates)
                 sample_logll_tensor = torch.stack(sample_log_lls)
 
-                mean_times = torch.mean(sample_heights_tensor, dim=(0,1))
-                mean_rates = torch.mean(sample_rates_tensor, dim=(0,1))
-                mean_lls = torch.mean(sample_logll_tensor,dim=(0,1))
+                mean_times = torch.mean(sample_heights_tensor, dim=(0, 1))
+                mean_rates = torch.mean(sample_rates_tensor, dim=(0, 1))
+                mean_lls = torch.mean(sample_logll_tensor, dim=(0, 1))
                 self.logger.info(f"Mean times: {mean_times}")
                 self.logger.info(f"Mean rates: {mean_rates}")
                 self.logger.info(f"Mean log-likelihoods: {mean_lls}")
@@ -331,7 +334,6 @@ class Vbayes(nn.Module):
                 samples_file.write(f"mean_times: {mean_times.tolist()} \n")
                 samples_file.write(f"mean_rates: {mean_rates.tolist()} \n")
                 samples_file.write(f"mean_lls: {mean_lls.tolist()} \n")
-
 
                 now = datetime.now()
                 samples_file.write(f"time: {now} \n")
@@ -347,7 +349,6 @@ class Vbayes(nn.Module):
             samples_file.close()
 
         return lbs, lbss, lls, ltp, lcp, lq_height, lq_clock, l_prior_vai_dist
-
 
     def learn(self, stepsz=0.001, test_freq=1000, lb_test_freq=5000, anneal_freq=20000, anneal_rate=0.75,
               n_particles=10, init_inverse_temp=0.001, warm_start_interval=5000, save_to_path=""):
@@ -383,4 +384,3 @@ class Vbayes(nn.Module):
         print("Branch model params:", self.branch_model.parameters())
         print("Clock model params:", self.clock_model.parameters())
         return lbs, lls, ltp, lcp, lq_height, lq_clock, lprior_vai_dist
-

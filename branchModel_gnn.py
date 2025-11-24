@@ -1,8 +1,7 @@
-import torch
-import torch.nn.functional as F
-import torch.nn as nn
-
 import math
+
+import torch
+import torch.nn as nn
 from ete3 import Tree
 
 from gnnModels import GNNStack, GatedGraphConv, IDConv, MeanStdPooling
@@ -11,7 +10,8 @@ from treePriors import BaseBD
 
 class GNNModel(nn.Module):
 
-    def __init__(self, n_tips, tree=Tree(), hidden_dim=100, num_layers=1, gnn_type="gcn", aggr="sum", n_particles=1,  project=False, bias=True, root_height_offset=0, time_prior_model=BaseBD(),**kwargs):
+    def __init__(self, n_tips, tree=Tree(), hidden_dim=100, num_layers=1, gnn_type="gcn", aggr="sum", n_particles=1,
+                 project=False, bias=True, root_height_offset=0, time_prior_model=BaseBD(), **kwargs):
         super(GNNModel, self).__init__()
         self.n_tips = n_tips
         self.leaf_features = torch.eye(self.n_tips)
@@ -23,15 +23,15 @@ class GNNModel(nn.Module):
         if gnn_type == 'identity':
             self.gnn = IDConv()
         elif gnn_type != 'ggnn':
-            self.gnn = GNNStack(self.n_tips, hidden_dim, num_layers=num_layers, bias=bias, gnn_type=gnn_type, aggr=aggr, project=project)
+            self.gnn = GNNStack(self.n_tips, hidden_dim, num_layers=num_layers, bias=bias, gnn_type=gnn_type, aggr=aggr,
+                                project=project)
         else:
             self.gnn = GatedGraphConv(hidden_dim, num_layers=num_layers, bias=bias)
 
         if gnn_type == 'identity':
             self.mean_std_net = MeanStdPooling(self.n_tips, hidden_dim, bias=bias)
         else:
-            self.mean_std_net = MeanStdPooling(hidden_dim, hidden_dim,  bias=bias)
-
+            self.mean_std_net = MeanStdPooling(hidden_dim, hidden_dim, bias=bias)
 
     def node_embedding(self, tree):
         for node in tree.traverse("postorder"):
@@ -43,7 +43,7 @@ class GNNModel(nn.Module):
                 for child in node.children:
                     child_c += child.c
                     child_d += child.d
-                node.c = 1./(3. - child_c)
+                node.c = 1. / (3. - child_c)
                 node.d = node.c * child_d
 
         node_features, node_idx_list, edge_index = [], [], []
@@ -74,11 +74,11 @@ class GNNModel(nn.Module):
     def mean_std(self, **kwargs):
         node_features, edge_index = self.node_embedding(self.tree)
         node_features = self.gnn(node_features, edge_index)
-        return self.mean_std_net(node_features, edge_index[:-1,0])
+        return self.mean_std_net(node_features, edge_index[:-1, 0])
 
     def sample_T_alpha_base(self):
-        samp_log_T_alpha = torch.randn(self.n_particles, self.n_tips-1)
-        return samp_log_T_alpha, torch.sum(-0.5*math.log(2*math.pi) - 0.5*samp_log_T_alpha**2, dim=-1)
+        samp_log_T_alpha = torch.randn(self.n_particles, self.n_tips - 1)
+        return samp_log_T_alpha, torch.sum(-0.5 * math.log(2 * math.pi) - 0.5 * samp_log_T_alpha ** 2, dim=-1)
 
     def sample_T_alpha(self):
         mean, std = self.mean_std()  # take mean and std params means: n_tips - 1 stds: n_tips - 1

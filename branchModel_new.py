@@ -1,13 +1,15 @@
 import math
+
 import torch
 import torch.nn as nn
 from ete3 import Tree
+
 from treePriors import BaseBD
 
 
-
 class BaseModel(nn.Module):
-    def __init__(self, n_tips=2, tree=Tree(), feature_dim=2, root_height_offset=0, n_particles=1, time_prior_model=BaseBD()):
+    def __init__(self, n_tips=2, tree=Tree(), feature_dim=2, root_height_offset=0, n_particles=1,
+                 time_prior_model=BaseBD()):
         super().__init__()
         self.n_tips = n_tips
         self.tree = tree
@@ -23,10 +25,9 @@ class BaseModel(nn.Module):
 
         nn.init.xavier_uniform_(self.T_alpha.data)
 
-
     # def pad_feature(self):
-        # self.feature_padded = torch.cat((self.T_alpha, torch.zeros(1, self.feature_dim)), dim=0)
-        # self.feature_padded = self.T_alpha
+    # self.feature_padded = torch.cat((self.T_alpha, torch.zeros(1, self.feature_dim)), dim=0)
+    # self.feature_padded = self.T_alpha
 
     def mean_std(self):
         mean_std = self.T_alpha
@@ -48,7 +49,8 @@ class BaseModel(nn.Module):
 
     def sample_T_alpha(self):
         mean, std = self.mean_std()  # take mean and std params means: n_tips - 1 stds: n_tips - 1
-        samp_log_T_alpha, logq_T_alpha = self.sample_T_alpha_base(self.n_particles)  # samp_log_T_alpha: n_particles x n_tips, logq_T_alpha: n_particles
+        samp_log_T_alpha, logq_T_alpha = self.sample_T_alpha_base(
+            self.n_particles)  # samp_log_T_alpha: n_particles x n_tips, logq_T_alpha: n_particles
         samp_log_T_alpha, logq_T_alpha = samp_log_T_alpha * std.exp() + mean, logq_T_alpha - torch.sum(std, -1)
         return samp_log_T_alpha, logq_T_alpha
 
@@ -117,12 +119,11 @@ class BaseModel(nn.Module):
             pos += 1
         return internal_ids, id_pos
 
-
     def forward(self):
 
         # self.pad_feature()
         samp_log_T_alpha, logq_T_alpha = self.sample_T_alpha()
-        alpha_, log_T = samp_log_T_alpha[:, :-1]-2, samp_log_T_alpha[:, -1] + self.root_height_offset
+        alpha_, log_T = samp_log_T_alpha[:, :-1] - 2, samp_log_T_alpha[:, -1] + self.root_height_offset
         alpha_vec = torch.sigmoid(alpha_)
 
         alpha = torch.cat((torch.zeros(self.n_particles, self.n_tips), alpha_vec), dim=-1)
@@ -130,8 +131,11 @@ class BaseModel(nn.Module):
 
         T = log_T.exp()
         logq_T_alpha -= torch.sum(torch.log(alpha_vec * (1 - alpha_vec)), dim=-1) + log_T
-        raw_branch, rescale_factor, height, logp_height = zip(*[self.branch_reparameterization(alpha[i], T[i]) for i in range(self.n_particles)]) # this is returning tuples of tensors. Thus, we must stack the tensors.
-        raw_branch, rescale_factor, height, logp_height = torch.stack(raw_branch), torch.stack(rescale_factor), torch.stack(height), torch.stack(logp_height)
+        raw_branch, rescale_factor, height, logp_height = zip(*[self.branch_reparameterization(alpha[i], T[i]) for i in
+                                                                range(
+                                                                    self.n_particles)])  # this is returning tuples of tensors. Thus, we must stack the tensors.
+        raw_branch, rescale_factor, height, logp_height = torch.stack(raw_branch), torch.stack(
+            rescale_factor), torch.stack(height), torch.stack(logp_height)
 
         logq_height = logq_T_alpha - torch.sum(torch.log(rescale_factor), dim=-1)
 

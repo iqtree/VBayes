@@ -1,12 +1,14 @@
-import torch
-import numpy as np
-from ete3 import Tree
-from bitarray import bitarray
-from Bio import Phylo
-from io import StringIO
-from treeManipulation import namenum
-import dendropy
 from collections import OrderedDict, defaultdict
+from io import StringIO
+
+import dendropy
+import numpy as np
+import torch
+from Bio import Phylo
+from bitarray import bitarray
+from ete3 import Tree
+
+from treeManipulation import namenum
 
 
 class BitArray(object):

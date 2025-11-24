@@ -65,6 +65,7 @@ def treeSimu(tree, D, U, U_inv, pden, ndata, missrate=0.0):
 
     return np.transpose(simuData)
 
+
 def randomise_branch_lengths(tree, lam=1.0, rng=None, keep_root_zero=True):
     if rng is None:
         rng = np.random.default_rng()
