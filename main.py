@@ -1,5 +1,7 @@
 import logging
+import argparse
 from datetime import datetime
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,22 +11,148 @@ from dataManupulation import loadData
 from treeManipulation import read_rooted_fossil_tree, namenum
 from vbayes import Vbayes
 
+
+def build_parser():
+
+    parser = argparse.ArgumentParser(
+        prog="VBayes",
+        description="VBayes for time-tree variational inference",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    # -----------------------
+    # IO / data arguments
+    # -----------------------
+    io = parser.add_argument_group("Input/Output")
+
+    io.add_argument(
+        "--aln-path",
+        type=str,
+        default="data/16taxa-1x/Comb-16taxa-1x.phy",
+        help="Path to alignment (.phy/.fasta)."
+    )
+    io.add_argument(
+        "--tree-path",
+        type=str,
+        default="data/16taxa-1x/comb_tree_16.nwk",
+        help="Path to fixed tree in Newick format."
+    )
+    io.add_argument(
+        "--aln-name",
+        type=str,
+        default="Comb-16taxa-1x",
+        help="Short name for dataset (used in logs/models)."
+    )
+    io.add_argument(
+        "--logs-path",
+        type=str,
+        default="data/16taxa-1x/logs",
+        help="Directory to write training logs."
+    )
+    io.add_argument(
+        "--save-path",
+        type=str,
+        default=None,   # we'll fill this after parsing if None
+        help="Where to save the final model. If not set, uses ./models/{aln_name}_{now}.model"
+    )
+
+    # -----------------------
+    # Birth-death prior
+    # -----------------------
+    bd = parser.add_argument_group("parameters for birth–Death prior with species sampling")
+
+    bd.add_argument("--lambda-bd", type=float, default=1.0, help="Birth rate λ.")
+    bd.add_argument("--mu-bd",     type=float, default=1.0, help="Death rate μ.")
+    bd.add_argument("--rho-bd",    type=float, default=0.5, help="Sampling fraction ρ.")
+
+    # -----------------------
+    # Clock / rate model
+    # -----------------------
+    clock = parser.add_argument_group("Clock model")
+
+    clock.add_argument("--mu-clock", type=float, default=0.5, help="Mean of clock-rate prior.")
+    clock.add_argument("--sigma-clock", type=float, default=1.0, help="Std of clock-rate prior.")
+    clock.add_argument("--init-clock-rate", type=float, default=1.0, help="Initial clock rate.")
+    clock.add_argument(
+        "--clock-type",
+        type=str,
+        default="strict",
+        choices=["strict", "fixed_rate"],
+        help="Type of molecular clock."
+    )
+
+    # -----------------------
+    # Model / GNN features
+    # -----------------------
+    model = parser.add_argument_group("Model / features")
+
+    model.add_argument("--feature-dim", type=int, default=2, help="number of parameters to optimize for vanilla VI models. Typically mean and variance only.")
+    model.add_argument(
+        "--branch-model",
+        type=str,
+        default="",
+        choices=["", "gnn"],
+        help="Optimization models for time parameters, either using direct parameter optimization or GNN."
+    )
+
+    # -----------------------
+    # Optimisation / VI
+    # -----------------------
+    opt = parser.add_argument_group("Optimisation")
+
+    opt.add_argument("--max-iter", type=int, default=20_000, help="Total optimisation iterations.")
+    opt.add_argument("--warm-up-steps", type=int, default=10_000, help="Warm-up steps before annealing.")
+    opt.add_argument("--anneal-rate", type=float, default=0.75, help="Learning rate anneal multiplier.")
+    opt.add_argument("--anneal-freq", type=int, default=1000, help="How often to anneal (iters).")
+    opt.add_argument("--init-inverse-temp", type=float, default=1e-5, help="Initial inverse temperature.")
+
+    # -----------------------
+    # Particle / Number of particles for VI sampling during optimization. Used for multi-sample ELBO
+    # -----------------------
+    smc = parser.add_argument_group("Particles")
+
+    smc.add_argument("--n-particles", type=int, default=1, help="Number of particles for variational inference.")
+
+    return parser
+
+
+def parse_args(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    # -------- post-processing defaults that depend on other args --------
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if args.save_path is None:
+        args.save_path = f"./models/{args.aln_name}_{now}.model"
+
+    # Ensure directories exist (nice UX)
+    Path(args.logs_path).mkdir(parents=True, exist_ok=True)
+    Path(Path(args.save_path).parent).mkdir(parents=True, exist_ok=True)
+
+    return args
+
 if __name__ == '__main__':
 
 
     now = datetime.now()
+    args = parse_args()
 
-    aln_path = "data/16taxa-1x/Comb-16taxa-1x.phy"
-    tree_path = "data/16taxa-1x/comb_tree_16.nwk"
-    aln_name = "Comb-16taxa-1x"
-    logs_path = "data/16taxa-1x/logs"
+    # aln_path = "data/16taxa-1x/Comb-16taxa-1x.phy"
+    # tree_path = "data/16taxa-1x/comb_tree_16.nwk"
+    # aln_name = "Comb-16taxa-1x"
+    # logs_path = "data/16taxa-1x/logs"
 
-    save_path = f"./models/{aln_name}_{now}.model"
+    aln_path = args.aln_path
+    tree_path = args.tree_path
+    aln_name = args.aln_name
+    logs_path = args.logs_path
+
+    save_path = args.save_path
 
     logger = logging.getLogger("vbayes_param_estimation_logger")
     logger.setLevel(logging.INFO)
 
-    file_handler = logging.FileHandler(f"{logs_path}/vaitime_param_estimation_{now}_{aln_name}.log")
+    file_handler = logging.FileHandler(f"{logs_path}/vbayes_param_estimation_{now}_{aln_name}.log")
     formatter = logging.Formatter("%(asctime)s - %(message)s")
     file_handler.setFormatter(formatter)
 
@@ -33,25 +161,25 @@ if __name__ == '__main__':
 
     tree = read_rooted_fossil_tree(tree_path)
     data, taxa = loadData(aln_path, 'phylip')
-
     namenum(tree, taxa)
 
-    lambda_bd = 1.0
-    mu_bd = 1.0
-    rho_bd = 0.5
-    mu_clock = 0.5
-    sigma_clock = 1.0
-    init_clock_rate = 1.0
-    clock_type = 'strict'
-    feature_dim = 2
-    max_iter = 20_000
-    warm_up_steps = 10_000
-    anneal_rate = 0.75
-    anneal_freq = 1000
-    init_inverse_temp = 0.00001
-    n_particles = 1
-    branch_model = ""
+    lambda_bd = args.lambda_bd
+    mu_bd = args.mu_bd
+    rho_bd = args.rho_bd
+    mu_clock = args.mu_clock
+    sigma_clock = args.sigma_clock
+    init_clock_rate = args.init_clock_rate
+    clock_type = args.clock_type
+    feature_dim = args.feature_dim
+    max_iter = args.max_iter
+    warm_up_steps = args.warm_up_steps
+    anneal_rate = args.anneal_rate
+    anneal_freq = args.anneal_freq
+    init_inverse_temp = args.init_inverse_temp
+    n_particles = args.n_particles
+    branch_model = args.branch_model
 
+    logger.info("Parameters used for VI optimization...")
     logger.info(f"\nlambda_bd = {lambda_bd}\n"
                 f"mu_bd = {mu_bd}\n"
                 f"rho_bd = {rho_bd}\n"
@@ -74,7 +202,7 @@ if __name__ == '__main__':
                     feature_dim=feature_dim, use_ambiguity=False,
                     tree=tree, max_iter=max_iter, n_particles=n_particles, branch_model=branch_model, logger=logger)
 
-    print("\n VBayes running")
+    print("\n VBayes running...")
 
     test_lb, lbss, lls, ltp, lcp, lq_height, lq_clock, lprior_vai_dist = model.learn_with_annealing(
         anneal_freq=anneal_freq,
