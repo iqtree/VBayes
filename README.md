@@ -1,5 +1,5 @@
 # VBayes  
-Variational Inference for Time-Calibrated Phylogenies
+Variational Time-Tree Inference for Time-Calibrated Phylogenies
 
 VBayes is a Python framework for estimating divergence times on fixed rooted phylogenies under a birth–death prior with species sampling and a molecular clock model. It supports both vanilla variational inference (VI) and GNN-based parameterizations.
 
@@ -18,11 +18,11 @@ source .venv/bin/activate
 
 ### 1.2. Install dependencies
 
-VBayes requires Pytorch version 2.6.0 or higher with dependencies listed in `requirements.txt` filr. Make sure you have `requirements.txt` in the project root, then run:
+VBayes requires Pytorch version 2.6.0 or higher with dependencies listed in `requirements.txt` file. Make sure you have `requirements.txt` in the project root, then run:
 ```bash
 pip install -r requirements.txt
 ```
-Make sure you have `requirements.txt` in the project root, then run:
+
 
 ## 2. Commandline arguments for running VBayes.
 
@@ -65,7 +65,7 @@ python3 main.py
 ```
 
 This will infer the time-tree for the data provided in `./data/16taxa-1x`. The logs and file containing the internal node ages are stored in the provided log path `./data/16taxa-1x/logs`.
-VBayes will generate plots for ELBO convergence and other prior distribution convergence inside the logs path.
+VBayes will generate plots for ELBO (Evidence Lower Bound) and other prior distribution convergence inside the logs path.
 
 ### 3.1. Running for your own dataset
 
