@@ -24,7 +24,7 @@ pip install -r requirements.txt
 ```
 
 
-## 2. Commandline arguments for running VBayes.
+## 2. Commandline arguments for running VBayes
 
 | Argument     | Description                                                                                                                                                                                                                                        | Default value |
 |--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
@@ -56,7 +56,7 @@ More details on commandline arguments can be found using:
 python3 main.py --help 
 ```
 
-## 3. Running VBayes for a dataset.
+## 3. Running VBayes for a dataset
 
 ### 3.1. Run with defaults
 
